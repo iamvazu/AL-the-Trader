@@ -25,12 +25,21 @@ SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 CREDS = ServiceAccountCredentials.from_json_keyfile_name(KEY, SCOPE)
 CLIENT = gspread.authorize(CREDS)
 
-PORTFOLIO = CLIENT.open('AL-portfolio').worksheet('portfolio')
-PORTFOLIO_HIST = CLIENT.open('AL-portfolio').worksheet('summary')
-WATCHLIST = CLIENT.open('AL-portfolio').worksheet('watchlist')
-STOCKS = CLIENT.open('AL-portfolio').worksheet('stocks')
-TRADES = CLIENT.open('AL-portfolio').worksheet('trades')
+PORTFOLIO = CLIENT.open('AL the Trader').worksheet('portfolio')
+PORTFOLIO_HIST = CLIENT.open('AL the Trader').worksheet('summary')
+WATCHLIST = CLIENT.open('AL the Trader').worksheet('watchlist')
+STOCKS = CLIENT.open('AL the Trader').worksheet('stocks')
+TRADES = CLIENT.open('AL the Trader').worksheet('trades')
 CASH_ON_HAND = PORTFOLIO.loc['CASH'].value
+
+def format_gs_dataframe(sheet):
+    df = pd.DataFrame(sheet.get_all_values())
+    
+    df.columns = df.iloc[0]
+    df.drop(index = 0, axis = 0, inplace = True)
+    df.set_index(df.columns[0], inplace = True)
+
+    return df
 
 ##EMAIL
 EMAIL_ADDRESS = os.environ.get('AL_EMAIL')
