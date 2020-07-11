@@ -19,20 +19,25 @@ TO-DO:
 from datetime import datetime
 from objects import assetfuncs as af
 from objects import algofuncs as alg
+from objects import updatefuncs as uf
 from objects.algofuncs import EMAIL_ADDRESS, EMAIL_PASSWORD 
-from objects.algofuncs import PORTFOLIO, PORTFOLIO_HIST, WATCHLIST, STOCKS, TRADES, CASH_ON_HAND
+from objects.algofuncs import PORTFOLIO_FILE, PORTFOLIO, PORTFOLIO_HIST, WATCHLIST, STOCKS, TRADES, CASH_ON_HAND
 import imp
 imp.reload(alg)
 imp.reload(af)
+imp.reload(uf)
 
 # DECLARATIONS
 testing = False
 manual = False # for manually selling/buying shares through bugs
 current_date = datetime.now()
 
+sheet_names_list = ['watchlist','stocks','portfolio','trades','summary']
+df_list = [WATCHLIST, STOCKS, PORTFOLIO, TRADES, PORTFOLIO_HIST]
+
 # MAIN
 if manual: 
-    ### temporary for manual sell trades - current bug: not selling @ rsi > 70.
+    ### TEMPORARY for manual sell trades - current bug: not selling @ rsi > 70.
     tickers = ['VZ'] # SET MANUAL TICKERS
 
     for ticker in tickers: 
@@ -96,11 +101,21 @@ PORTFOLIO.loc['TOTAL'] = sum([PORTFOLIO.loc['CASH'].value,
 
 PORTFOLIO_HIST = PORTFOLIO_HIST.loc[PORTFOLIO_HIST.index.str[0:10] != current_date.strftime("%d/%m/%Y")]
 PORTFOLIO_HIST.loc[current_date.strftime("%d/%m/%Y %H:%M:%S")] = PORTFOLIO.transpose().values[0]
-
 WATCHLIST.sort_values(by = 'rsi', inplace = True)
 
 if not testing: 
-    alg.update_workbook(WATCHLIST, STOCKS, PORTFOLIO, TRADES, PORTFOLIO_HIST)
+    #UPDATE: EXCEL
+    try:
+        alg.update_workbook(WATCHLIST, STOCKS, PORTFOLIO, TRADES, PORTFOLIO_HIST)
+    except Exception as error:
+        print(f'FAILED TO UPDATE EXCEL: {str(error)}')
+    #UPDATE: GOOGLE SHEETS
+    try:
+        for name, df in zip(sheet_names_list, df_list): 
+            uf.update_gs_workbook(PORTFOLIO_FILE, name, df) 
+    except Exception as error: 
+        print(f'FAILED TO UPDATE GOOGLE SHEET: {str(error)}')
+    
     # SUMMARY EMAIL
     if current_date.hour >= 16:
         trades_executed = alg.todays_trades(TRADES)

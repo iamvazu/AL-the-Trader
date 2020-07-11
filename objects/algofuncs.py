@@ -13,24 +13,29 @@ from email.mime.text import MIMEText
 import smtplib
 
 from objects import assetfuncs as af
+from objects import updatefuncs as uf
 import imp
 imp.reload(af)
-
+imp.reload(uf)
 
 # DECLARATIONS
 ##SHEETS
-PORTFOLIO_FILE = pd.ExcelFile('portfolio.xlsx')
-PORTFOLIO = pd.read_excel(PORTFOLIO_FILE, sheet_name = 'portfolio', header = 0, index_col = 0)
-PORTFOLIO_HIST = pd.read_excel(PORTFOLIO_FILE, sheet_name = 'summary', header = 0, index_col = 0)
-WATCHLIST = pd.read_excel(PORTFOLIO_FILE, sheet_name= 'watchlist', header = 0, index_col = 0)
-STOCKS = pd.read_excel(PORTFOLIO_FILE, sheet_name= 'stocks', header = 0, index_col = 0)
-TRADES = pd.read_excel(PORTFOLIO_FILE, sheet_name= 'trades', header = 0, index_col = 0)
+KEY = os.environ.get('GS_KEY')
+SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+CREDS = ServiceAccountCredentials.from_json_keyfile_name(KEY, SCOPE)
+CLIENT = gspread.authorize(CREDS)
+
+PORTFOLIO_FILE = CLIENT.open('AL the Trader')
+PORTFOLIO = uf.gs_to_df('portfolio', PORTFOLIO_FILE)
+PORTFOLIO_HIST = uf.gs_to_df('summary', PORTFOLIO_FILE)
+WATCHLIST = uf.gs_to_df('watchlist', PORTFOLIO_FILE)
+STOCKS = uf.gs_to_df('stocks', PORTFOLIO_FILE)
+TRADES = uf.gs_to_df('trades', PORTFOLIO_FILE)
 CASH_ON_HAND = PORTFOLIO.loc['CASH'].value
 
 ##EMAIL
 EMAIL_ADDRESS = os.environ.get('AL_EMAIL')
 EMAIL_PASSWORD = os.environ.get('AL_PASS')
-
 
 # FUNCTIONS
 def initialize_asset(ticker, stocks_df):
@@ -157,8 +162,6 @@ def send_email(trades_df, stocks_df, portfolio_df):
     </body></html>
     """
 
-    # text = text.format(table=df)
-    # html = html.format(table=df)
     message = MIMEMultipart(
         "alternative", None, [MIMEText(text), MIMEText(html,'html')])
 
